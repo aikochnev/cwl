@@ -1,0 +1,93 @@
+# name: cwl
+
+services:
+  kochnev-ai-netology-prometheus:
+    image: prom/prometheus:latest
+    container_name: kochnev-ai-netology-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    networks:
+      - kochnev-ai-my-netology-hw
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+
+  kochnev-ai-netology-pushgateway:
+    image: prom/pushgateway:latest
+    container_name: kochnev-ai-netology-pushgateway
+    ports:
+      - "9091:9091"
+    restart: unless-stopped
+    networks:
+      - kochnev-ai-my-netology-hw
+    volumes:
+      - pushgateway_data:/data
+
+  kochnev-ai-netology-grafana:
+    image: grafana/grafana:latest
+    container_name: kochnev-ai-netology-grafana
+    ports:
+      - "80:3000"
+    environment:
+      - GF_PATHS_CONFIG=/etc/grafana/custom.ini
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - grafana_config:/etc/grafana
+      - ./grafana/custom.ini:/etc/grafana/custom.ini:ro
+    networks:
+      - kochnev-ai-my-netology-hw
+    restart: unless-stopped
+    depends_on:
+      - kochnev-ai-netology-prometheus
+
+  kochnev-ai-netology-alertmanager:
+    image: prom/alertmanager:latest
+    container_name: kochnev-ai-netology-alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager:/etc/alertmanager
+      - alertmanager_data:/data
+    networks:
+      - kochnev-ai-my-netology-hw
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/data'
+    depends_on:
+      - kochnev-ai-netology-prometheus
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: kochnev-ai-cadvisor
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    ports:
+      - "8080:8080"
+    networks:
+      - kochnev-ai-my-netology-hw
+    restart: unless-stopped
+    depends_on:
+      - kochnev-ai-netology-prometheus
+
+volumes:
+  prometheus_config:
+  prometheus_data:
+  pushgateway_data:
+  grafana_data:
+  grafana_config:
+  alertmanager_data:
+
+networks:
+  kochnev-ai-my-netology-hw:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.5.0.0/16

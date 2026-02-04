@@ -1,0 +1,10 @@
+groups:
+- name: example
+  rules:
+  - alert: kochnev_ai_high
+    expr: kochnev_ai > 3
+    for: 10s
+    labels:
+      severity: warning
+    annotations:
+      summary: "High kochnev_ai value"
